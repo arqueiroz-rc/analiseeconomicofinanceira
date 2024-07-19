@@ -1,50 +1,53 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
+from math import pi
 
-# Carregar os dados
 balanco_df = pd.read_csv('balanco.csv')
 saude_df = pd.read_csv('saude_financeira.csv')
 
-# Juntar os dados
 df = pd.merge(balanco_df, saude_df, on='empresa')
 
-# Criar novas colunas de indicadores financeiros
 df['liquidez_corrente'] = df['ativo_total'] / df['passivo_total']
 df['margem_bruta'] = df['lucro_bruto'] / df['receita_liquida']
 df['despesa_sobre_receita'] = df['despesa_operacional'] / df['receita_liquida']
+df['rentabilidade'] = df['lucro_bruto'] / df['ativo_total']
+df['endividamento'] = df['passivo_total'] / df['ativo_total']
+df['retorno_sobre_capital_proprio'] = df['lucro_bruto'] / (df['ativo_total'] - df['passivo_total'])
 
-# Preparar os dados para o modelo
-X = df[['ativo_total', 'passivo_total', 'receita_liquida', 'lucro_bruto', 'despesa_operacional', 'liquidez_corrente', 'margem_bruta', 'despesa_sobre_receita']]
-y = df['saude_financeira']
+def normalize(series):
+    return (series - series.min()) / (series.max() - series.min())
 
-# Codificar as etiquetas
-le = LabelEncoder()
-y = le.fit_transform(y)
+df['liquidez_corrente'] = normalize(df['liquidez_corrente'])
+df['margem_bruta'] = normalize(df['margem_bruta'])
+df['despesa_sobre_receita'] = normalize(df['despesa_sobre_receita'])
+df['rentabilidade'] = normalize(df['rentabilidade'])
+df['endividamento'] = normalize(df['endividamento'])
+df['retorno_sobre_capital_proprio'] = normalize(df['retorno_sobre_capital_proprio'])
 
-# Dividir os dados em conjuntos de treino e teste
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+def make_radar_chart(df, company_names):
+    categories = ['liquidez_corrente', 'margem_bruta', 'despesa_sobre_receita', 'rentabilidade', 'endividamento', 'retorno_sobre_capital_proprio']
+    N = len(categories)
 
-# Treinar o modelo
-model = RandomForestClassifier(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
+    angles = [n / float(N) * 2 * pi for n in range(N)]
+    angles += angles[:1]
 
-# Fazer previsões
-y_pred = model.predict(X_test)
+    plt.figure(figsize=(10, 6))
+    ax = plt.subplot(111, polar=True)
 
-# Avaliar o modelo
-print(classification_report(y_test, y_pred))
-print(confusion_matrix(y_test, y_pred))
+    for i, company in enumerate(company_names):
+        values = df.loc[df['empresa'] == company, categories].values.flatten().tolist()
+        values += values[:1]
+        ax.plot(angles, values, linewidth=2, linestyle='solid', label=company)
+        ax.fill(angles, values, alpha=0.25)
 
-# Visualização
-plt.figure(figsize=(10, 6))
-plt.barh(df['empresa'], df['liquidez_corrente'], color='blue', alpha=0.6, label='Liquidez Corrente')
-plt.barh(df['empresa'], df['margem_bruta'], color='green', alpha=0.6, label='Margem Bruta')
-plt.xlabel('Indicadores Financeiros')
-plt.ylabel('Empresas')
-plt.title('Indicadores Financeiros das Empresas')
-plt.legend()
-plt.show()
+    plt.xticks(angles[:-1], categories)
+    ax.set_rlabel_position(0)
+    plt.yticks([0.2, 0.4, 0.6, 0.8, 1.0], ["0.2", "0.4", "0.6", "0.8", "1.0"], color="grey", size=7)
+    plt.ylim(0, 1)
+
+    plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
+    plt.title('Indicadores Financeiros das Empresas')
+    plt.show()
+
+company_names = df['empresa'].unique()
+make_radar_chart(df, company_names)
