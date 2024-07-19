@@ -2,28 +2,29 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from math import pi
 
+# Leitura do arquivo CSV com os dados do balanço
 balanco_df = pd.read_csv('balanco.csv')
-saude_df = pd.read_csv('saude_financeira.csv')
 
-df = pd.merge(balanco_df, saude_df, on='empresa')
+# Cálculo dos índices financeiros
+balanco_df['liquidez_corrente'] = balanco_df['ativo_total'] / balanco_df['passivo_total']
+balanco_df['margem_bruta'] = balanco_df['lucro_bruto'] / balanco_df['receita_liquida']
+balanco_df['despesa_sobre_receita'] = balanco_df['despesa_operacional'] / balanco_df['receita_liquida']
+balanco_df['rentabilidade'] = balanco_df['lucro_bruto'] / balanco_df['ativo_total']
+balanco_df['endividamento'] = balanco_df['passivo_total'] / balanco_df['ativo_total']
+balanco_df['retorno_sobre_capital_proprio'] = balanco_df['lucro_bruto'] / (balanco_df['ativo_total'] - balanco_df['passivo_total'])
 
-df['liquidez_corrente'] = df['ativo_total'] / df['passivo_total']
-df['margem_bruta'] = df['lucro_bruto'] / df['receita_liquida']
-df['despesa_sobre_receita'] = df['despesa_operacional'] / df['receita_liquida']
-df['rentabilidade'] = df['lucro_bruto'] / df['ativo_total']
-df['endividamento'] = df['passivo_total'] / df['ativo_total']
-df['retorno_sobre_capital_proprio'] = df['lucro_bruto'] / (df['ativo_total'] - df['passivo_total'])
-
+# Normalização dos índices financeiros
 def normalize(series):
     return (series - series.min()) / (series.max() - series.min())
 
-df['liquidez_corrente'] = normalize(df['liquidez_corrente'])
-df['margem_bruta'] = normalize(df['margem_bruta'])
-df['despesa_sobre_receita'] = normalize(df['despesa_sobre_receita'])
-df['rentabilidade'] = normalize(df['rentabilidade'])
-df['endividamento'] = normalize(df['endividamento'])
-df['retorno_sobre_capital_proprio'] = normalize(df['retorno_sobre_capital_proprio'])
+balanco_df['liquidez_corrente'] = normalize(balanco_df['liquidez_corrente'])
+balanco_df['margem_bruta'] = normalize(balanco_df['margem_bruta'])
+balanco_df['despesa_sobre_receita'] = normalize(balanco_df['despesa_sobre_receita'])
+balanco_df['rentabilidade'] = normalize(balanco_df['rentabilidade'])
+balanco_df['endividamento'] = normalize(balanco_df['endividamento'])
+balanco_df['retorno_sobre_capital_proprio'] = normalize(balanco_df['retorno_sobre_capital_proprio'])
 
+# Função para criar o gráfico radar
 def make_radar_chart(df, company_names):
     categories = ['liquidez_corrente', 'margem_bruta', 'despesa_sobre_receita', 'rentabilidade', 'endividamento', 'retorno_sobre_capital_proprio']
     N = len(categories)
@@ -49,5 +50,8 @@ def make_radar_chart(df, company_names):
     plt.title('Indicadores Financeiros das Empresas')
     plt.show()
 
-company_names = df['empresa'].unique()
-make_radar_chart(df, company_names)
+# Lista de nomes das empresas
+company_names = balanco_df['empresa'].unique()
+
+# Geração do gráfico radar
+make_radar_chart(balanco_df, company_names)
